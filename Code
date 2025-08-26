@@ -1,0 +1,327 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LoyaTVET Chatbot</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f3f4f6;
+        }
+        .chat-container {
+            max-width: 768px;
+            height: 80vh;
+            display: flex;
+            flex-direction: column;
+        }
+        .chat-messages {
+            flex-grow: 1;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
+            padding: 1.5rem;
+            display: flex;
+            flex-direction: column;
+            gap: 1rem;
+        }
+        .message {
+            max-width: 80%;
+            padding: 0.75rem 1rem;
+            border-radius: 1.25rem;
+            position: relative;
+        }
+        .message.bot {
+            background-color: #e2e8f0;
+            color: #1f2937;
+            align-self: flex-start;
+            border-bottom-left-radius: 0.25rem;
+        }
+        .message.user {
+            background-color: #2563eb;
+            color: #ffffff;
+            align-self: flex-end;
+            border-bottom-right-radius: 0.25rem;
+        }
+        .input-area {
+            display: flex;
+            padding: 1rem;
+            background-color: #ffffff;
+            border-top: 1px solid #e5e7eb;
+            gap: 0.5rem;
+        }
+        .input-area input {
+            flex-grow: 1;
+            padding: 0.75rem 1.25rem;
+            border-radius: 9999px;
+            border: 1px solid #d1d5db;
+        }
+        .input-area button {
+            padding: 0.75rem 1.25rem;
+            background-color: #2563eb;
+            color: #ffffff;
+            border-radius: 9999px;
+            font-weight: 500;
+            transition: background-color 0.2s ease-in-out;
+        }
+        .input-area button:hover {
+            background-color: #1d4ed8;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            padding: 2rem;
+            border-radius: 1rem;
+            text-align: center;
+            max-width: 400px;
+        }
+        .close-button {
+            float: right;
+            font-size: 1.5rem;
+            font-weight: bold;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 flex items-center justify-center min-h-screen">
+
+    <div class="chat-container w-full bg-white shadow-lg rounded-xl overflow-hidden md:rounded-3xl">
+        <div class="bg-blue-600 text-white p-4 text-center text-xl font-bold rounded-t-xl md:rounded-t-3xl">
+            LoyaTVET
+        </div>
+
+        <div id="chat-messages" class="chat-messages">
+            <!-- Mesej awal bot -->
+            <div class="message bot">
+                Hai! Saya adalah chatbot LoyaTVET anda. Bagaimanakah saya boleh bantu anda?
+            </div>
+        </div>
+
+        <div class="input-area">
+            <input type="text" id="user-input" placeholder="Taip mesej anda..." class="focus:outline-none focus:ring-2 focus:ring-blue-500">
+            <button id="send-btn">Hantar</button>
+        </div>
+    </div>
+
+    <!-- Modal tersuai untuk Makluman -->
+    <div id="alert-modal" class="modal">
+        <div class="modal-content">
+            <span class="close-button">&times;</span>
+            <p id="alert-message" class="text-lg"></p>
+        </div>
+    </div>
+
+    <script>
+        // Gunakan fungsi segera untuk memastikan pembolehubah tidak berada dalam skop global
+        (function() {
+            const chatMessages = document.getElementById('chat-messages');
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+            const alertModal = document.getElementById('alert-modal');
+            const alertMessage = document.getElementById('alert-message');
+            const closeBtn = document.querySelector('#alert-modal .close-button');
+
+            // --- Fungsi Modal ---
+            function showAlert(message) {
+                alertMessage.textContent = message;
+                alertModal.style.display = 'flex';
+            }
+
+            closeBtn.onclick = function() {
+                alertModal.style.display = 'none';
+            }
+
+            window.onclick = function(event) {
+                if (event.target == alertModal) {
+                    alertModal.style.display = 'none';
+                }
+            }
+
+            // --- Logik Chatbot ---
+
+            // Data sampel dari dokumen FAQ
+            const faqData = `
+                FAQ KOLEJ VOKASIONAL BETONG
+                MACAM MANA NAK MOHON KV BETONG UNTUK LEPASAN TINGKATAN 3 (SIJIL VOKASIONAL MALAYSIA ATAU SVM)?
+                Boleh memohon di pautan https://spskt4.moe.gov.my/ apabila iklan pengambilan dibuka. Calon akan menduduki Pentaksiran Kemasukan Sekolah Khusus (PKSK). Sekiranya melepasi ujian PKSK, calon akan ditemuduga oleh pihak program KV Betong.
+                MACAM MANA NAK MOHON KV BETONG UNTUK LEPASAN TINGKATAN 5 (DIPLOMA VOKASIONAL MALAYSIA ATAU DVM)?
+                Boleh memohon di pautan https://mohon.tvet.gov.my/ apabila iklan pengambilan dibuka. 
+                PROGRAM DITAWARKAN DI KV BETONG
+                Program Teknologi Kimpalan
+                Program Teknologi Automotif
+                Program Teknologi Pemesinan Industri
+                Program Teknologi Pembinaan
+                Program Teknologi Elektrik
+                Program Teknologi Sistem Rangkaian
+                Program Seni Kulinari
+                Program Perakaunan
+                SYARAT PROGRAM SIJIL VOKASIONAL MALAYSIA
+                SYARAT UMUM
+                Murid adalah Warganegara Malaysia.
+                Murid Tingkatan 3 pada sesi akademik 2024/2025.
+                Murid mendaftar dalam Modul Pengurusan Murid.
+                Murid mesti menduduki Pentaksiran Kemasukan Sekolah Khusus (PKSK).
+                Murid mesti menduduki Pentaksiran Bilik Darjah (PBD), Pentaksiran Aktiviti Jasmani, Sukan dan Kokurikulum (PAJSK) dan Pentaksiran Psikometrik (PPsi).
+                Murid sihat tubuh badan.
+                Murid mesti tiada sebarang kecederaan / sejarah penyakit yang menghadkan, membataskan dan menyukarkan pelaksanaan kerja praktikal dan amali.
+                Murid mesti tidak rabun warna/buta warna.
+                Murid berminat dengan program dipohon.
+                SYARAT KHUSUS
+                Murid memperoleh sekurang-kurangnya Tahap Penguasaan 3 Pentaksiran Bilik Darjah (PBD) bagi mata pelajaran berikut:
+                i. Bahasa Melayu
+                ii. Bahasa Inggeris
+                iii. Matematik
+                iv. Sains
+                v. Reka Bentuk dan Teknologi/Asas Sains Komputer
+                CARA MENGHUBUNGI KV BETONG
+                Talian pejabat : 083472160
+                Emel : yha2401@moe.edu.my
+                Facebook : Kolej Vokasional Betong
+                ADAKAH ASRAMA DISEDIAKAN?
+                Asrama ditawarkan kepada pelajar yang layak dan bergantung kepada kekosongan
+                BERAPAKAH YURAN PENGAJIAN DI KV BETONG? 
+                Tiada yuran pengajian di KV Betong. Namun pelajar hanya dikenakan pembayaran baju, yuran PIBG, yuran KV Skills dan yuran-yuran berkaitan sahaja berbentuk sumbangan.
+                BERAPA TAHUN PENGAJIAN DI KV BETONG?
+                Pelajar akan menjalani sesi pengajian Sijil Vokasional Malaysia (SVM) selama 2 tahun dan sekiranya layak akan menjalani sesi pengajian Diploma Vokasional Malaysia (DVM) selama 2 tahun dan On-The-Job-Training (OJT) di industri selama 6 bulan.
+                PENGAMBILAN KE KV BETONG UNTUK PELAJAR BERUSIA BERAPA TAHUN?
+                KV Betong membuat pengambilan untuk pelajar lepasan Tingkatan 3 iaitu 16 tahun untuk Sijil Vokasional Malaysia (SVM) dan juga untuk pelajar lepasan SPM (17 Tahun) untuk Diploma Vokasional Malaysia.
+                KEMUDAHAN YANG DISEDIAKAN DI KV BETONG
+                Residensial
+                Bilik Kuliah
+                Bengkel
+                Dewan Sri Kenanga
+                Dewan Perdana (Dewan Makan)
+                Surau Ibnu Khaldun
+                Kafeteria
+                Koperasi
+                Gelanggang sukan
+                Padang bola
+                Van
+                Bilik Kaunseling
+                Makmal Schoolnet (Makmal Komputer)
+                Pusat Sumber
+                Berapakah jumlah pensyarah atau cikgu di KV Betong
+                124 orang
+                Dimanakah lokasi KV Betong?
+                Kolej Vokasional Betong terletak di KM8, Jalan Betong. Berhadapan Hospital Betong dan bersebelahan MRSM Betong dan SMK Datuk Patinggi Kedit, Betong
+                Siapakah pengarah Kolej Vokasional Betong
+                KV Betong dipimpin oleh Encik Mohd Amin bin Mohamed Noor.
+            `;
+
+            // Function to generate the response using the Gemini API
+            async function getBotResponse(userPrompt) {
+                // Prepare the payload for the API call
+                const prompt = `Based on the following FAQ data, provide a concise and helpful answer to the user's question. The answer must be in Malay. YOU MUST STRICTLY ADHERE TO THE PROVIDED DATA. DO NOT use external information. If the information is not available in the data, politely state that you do not have the information and suggest they contact the college directly.
+
+                Data FAQ:
+                ${faqData}
+
+                User's question:
+                ${userPrompt}
+                `;
+                
+                const chatHistory = [];
+                chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                const payload = { contents: chatHistory };
+                const apiKey = "";
+                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-05-20:generateContent?key=${apiKey}`;
+
+                try {
+                    let response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    // Check for rate limiting and retry with exponential backoff
+                    let retries = 0;
+                    const maxRetries = 5;
+                    while (response.status === 429 && retries < maxRetries) {
+                        retries++;
+                        const delay = Math.pow(2, retries) * 1000;
+                        console.log(`Rate limit exceeded. Retrying in ${delay / 1000}s...`);
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        response = await fetch(apiUrl, {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify(payload)
+                        });
+                    }
+
+                    const result = await response.json();
+                    
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        return result.candidates[0].content.parts[0].text;
+                    } else {
+                        console.error("API response structure is unexpected:", result);
+                        return "Maaf, saya tidak dapat mencari jawapan. Sila cuba lagi nanti atau hubungi kolej secara langsung.";
+                    }
+                } catch (error) {
+                    console.error("Error calling Gemini API:", error);
+                    return "Maaf, saya menghadapi masalah sambungan. Sila cuba lagi nanti.";
+                }
+            }
+
+            // Function to add a message to the chat display
+            function addMessage(text, sender) {
+                const messageElement = document.createElement('div');
+                messageElement.classList.add('message', sender);
+                messageElement.innerHTML = text.replace(/\n/g, '<br>'); // Handle newlines
+                chatMessages.appendChild(messageElement);
+                chatMessages.scrollTop = chatMessages.scrollHeight; // Scroll to the bottom
+            }
+
+            // Event listener for sending a message
+            async function sendMessage() {
+                const userText = userInput.value.trim();
+                if (userText === '') {
+                    showAlert("Sila masukkan soalan.");
+                    return;
+                }
+
+                addMessage(userText, 'user');
+                userInput.value = '';
+
+                // Show a typing indicator
+                const typingIndicator = document.createElement('div');
+                typingIndicator.classList.add('message', 'bot', 'typing-indicator');
+                typingIndicator.textContent = '...';
+                chatMessages.appendChild(typingIndicator);
+                chatMessages.scrollTop = chatMessages.scrollHeight;
+
+                try {
+                    const botResponse = await getBotResponse(userText);
+                    chatMessages.removeChild(typingIndicator); // Remove typing indicator
+                    addMessage(botResponse, 'bot');
+                } catch (error) {
+                    console.error("Failed to get bot response:", error);
+                    chatMessages.removeChild(typingIndicator); // Remove typing indicator
+                    addMessage("Maaf, ada sesuatu yang tidak kena. Sila cuba lagi.", 'bot');
+                }
+            }
+
+            // Bind send button and enter key
+            sendBtn.addEventListener('click', sendMessage);
+            userInput.addEventListener('keydown', (event) => {
+                if (event.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+        })();
+    </script>
+</body>
+</html>
